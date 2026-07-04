@@ -3,30 +3,25 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type SqlStorage struct {
-	db *sql.DB
-}
+type (
+	SqlStorage struct {
+		db *sql.DB
+	}
 
-type itfUser interface {
-	GetLogin() string
-	GetAuthKey() string
-}
-
-type UserData struct {
-	Login     string
-	Current   float64
-	Withdrawn int
-}
+	ErrNoData struct {
+		logger.TracedError
+	}
+)
 
 var storage *SqlStorage
 
@@ -93,8 +88,8 @@ func (sqls *SqlStorage) AddUser(ctx context.Context, user itfUser) error {
 }
 
 func (sqls *SqlStorage) CreateSession(ctx context.Context, user itfUser) (session string, err error) {
-	data, err := logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
-		return sqls.db.QueryContext(ctx, `
+	err = logger.ExecuteWithRetryNoResult(func(args ...interface{}) error {
+		return sqls.db.QueryRowContext(ctx, `
 			INSERT INTO "Session" ( "UserId" )
 	    	SELECT "ID" from "User"
 	    	WHERE 
@@ -104,24 +99,18 @@ func (sqls *SqlStorage) CreateSession(ctx context.Context, user itfUser) (sessio
 			RETURNING "SessionKey"
             `,
 			user.GetLogin(), user.GetAuthKey(),
-		)
+		).Scan(&session)
 	})
 	if err != nil {
 		err = logger.NewTracedError("error adding new session: ", err)
-	}
-	rows := data.(*sql.Rows)
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan(&session)
-		logger.Info("New session: ", session)
+		return "", err
 	}
 	return
 }
 
 func (sqls *SqlStorage) GetUserBySession(ctx context.Context, session string) (data UserData, err error) {
-	res, err := logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
-		return sqls.db.QueryContext(ctx, `
+	err = logger.ExecuteWithRetryNoResult(func(args ...interface{}) error {
+		return sqls.db.QueryRowContext(ctx, `
 			WITH session_data as (
 			    SELECT "UserId"
 			    FROM "Session"
@@ -137,19 +126,18 @@ func (sqls *SqlStorage) GetUserBySession(ctx context.Context, session string) (d
 			LEFT JOIN "Balance" b ON u."ID" = b."UserId"
             `,
 			session,
-		)
+		).Scan(&data.Login, &data.Current, &data.Withdrawn)
 	})
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = &ErrNoData{*logger.NewTracedError("No user found: ", err)}
+			return
+		}
 		err = logger.NewTracedError("error searching user data: ", err)
+		return
 	}
-	rows := res.(*sql.Rows)
-	defer rows.Close()
 
-	for rows.Next() {
-		rows.Scan(&data.Login, &data.Current, &data.Withdrawn)
-		logger.Info("Found user: ", data.Login)
-	}
 	return
 }
 

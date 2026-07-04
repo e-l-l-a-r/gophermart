@@ -8,6 +8,7 @@ import (
 
 	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/model"
+	"github.com/e-l-l-a-r/gophermart/internal/repository"
 )
 
 func getAuthData(req *http.Request) (auth model.AuthData, err error) {
@@ -62,6 +63,10 @@ func loginReq() http.HandlerFunc {
 		user, err := model.LoginUser(ctx, auth)
 
 		if err != nil {
+			if _, ok := errors.AsType[*repository.ErrNoData](err); ok {
+				http.Error(resp, "Неверный логин или пароль", http.StatusUnauthorized)
+				return
+			}
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
 		}

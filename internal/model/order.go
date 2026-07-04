@@ -99,9 +99,9 @@ func (o *Order) IsValid() bool {
 }
 
 func (o *Order) AddToUser(ctx context.Context, u *User) error {
-	storage, err := repository.GetSqlStorage()
-	if err != nil {
-		return logger.NewTracedError("error getting sql storage: ", err)
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return logger.NewTracedError("storage not found in context", nil)
 	}
 
 	username, err := storage.AddNewOrder(ctx, o.Number, u.auth.Login)
