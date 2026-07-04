@@ -37,7 +37,7 @@ func run() error {
 		return err
 	}
 
-	router := handler.GetRouter()
+	router := handler.GetRouter(storage)
 	err = http.ListenAndServe(conf.Address, compressor.GzipHandle(log.LogHandle(router)))
 	if err != nil {
 		return err

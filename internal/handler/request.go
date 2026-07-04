@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/e-l-l-a-r/gophermart/internal/model"
+	"github.com/e-l-l-a-r/gophermart/internal/repository"
 )
 
 func incorrectReqest(resp http.ResponseWriter, _ *http.Request) {
@@ -17,7 +19,7 @@ func okRequest(resp http.ResponseWriter, _ *http.Request) {
 }
 
 func serverError(msg string, resp http.ResponseWriter) {
-	http.Error(resp, "Interval ERROR", http.StatusInternalServerError)
+	http.Error(resp, "Internal ERROR "+msg, http.StatusInternalServerError)
 }
 func getCookeForUser(user model.User) *http.Cookie {
 	return &http.Cookie{
@@ -28,6 +30,15 @@ func getCookeForUser(user model.User) *http.Cookie {
 		HttpOnly: true,
 	}
 }
+func WithStorage(storage repository.Storage) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := repository.ContextWithStorage(r.Context(), storage)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func CheckAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		session, err := req.Cookie("session")
@@ -38,6 +49,10 @@ func CheckAuth(next http.HandlerFunc) http.HandlerFunc {
 		user, err := model.GetUserBySession(req.Context(), session.Value)
 
 		if err != nil {
+			if _, ok := errors.AsType[*repository.ErrNoData](err); ok {
+				http.Error(resp, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
 		}
