@@ -26,7 +26,7 @@ func GetRouter(storage repository.Storage) *chi.Mux {
 	rtr.Post("/api/user/login", loginReq())
 
 	rtr.Post("/api/user/orders", CheckAuth(addOrderReq()))
-	rtr.Get("/api/user/orders", CheckAuth(okRequest))
+	rtr.Get("/api/user/orders", CheckAuth(getOrdersReq()))
 	rtr.Get("/api/user/balance", CheckAuth(balanceReq()))
 
 	rtr.Post("/api/user/balance/withdraw", CheckAuth(okRequest))

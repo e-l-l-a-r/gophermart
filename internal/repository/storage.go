@@ -18,7 +18,7 @@ type UserData struct {
 
 type OrderData struct {
 	Number   string
-	Status   string
+	Status   int
 	Accrual  float64
 	Uploaded time.Time
 }
