@@ -44,7 +44,7 @@ type (
 	Order struct {
 		Number     string    `json:"number"`
 		Status     string    `json:"status"`
-		Accrual    int       `json:"accrual"`
+		Accrual    float64   `json:"accrual"`
 		UploadedAt time.Time `json:"uploaded_at"`
 	}
 	ErrAlreadyExists struct {
@@ -123,4 +123,50 @@ func (o *Order) AddToUser(ctx context.Context, u *User) error {
 	return &ErrAlreadyExists{
 		*logger.NewTracedError("order already exists", fmt.Errorf("")),
 	}
+}
+
+func (o *Order) SaveToDb(ctx context.Context) error {
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return logger.NewTracedError("storage not found in context", nil)
+	}
+
+	stt, err := getStatusAsInt(o.Status)
+	if err != nil {
+		return logger.NewTracedError("bad status value", err)
+	}
+	err = storage.UpdOrderData(ctx, o.Number, stt, o.Accrual)
+
+	if err != nil {
+		return logger.NewTracedError("error getting orders: ", err)
+	}
+
+	return nil
+}
+
+func GetOrdersToProcess(ctx context.Context, count int) ([]Order, error) {
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return nil, logger.NewTracedError("storage not found in context", nil)
+	}
+
+	data, err := storage.GetOrdesList(ctx, "", count, OrderStatusMap[PROCESSING])
+
+	if err != nil {
+		return nil, logger.NewTracedError("error getting orders: ", err)
+	}
+
+	res := make([]Order, len(data))
+
+	for i := 0; i < len(data); i++ {
+		order := Order{
+			data[i].Number,
+			data[i].Status,
+			data[i].Accrual,
+			data[i].Uploaded,
+		}
+		res = append(res, order)
+	}
+
+	return res, nil
 }
