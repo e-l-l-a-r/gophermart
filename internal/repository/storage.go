@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 )
 
 type itfUser interface {
@@ -15,11 +16,20 @@ type UserData struct {
 	Withdrawn int
 }
 
+type OrderData struct {
+	Number   string
+	Status   string
+	Accrual  float64
+	Uploaded time.Time
+}
+
 type Storage interface {
 	AddUser(ctx context.Context, user itfUser) error
 	CreateSession(ctx context.Context, user itfUser) (session string, err error)
 	GetUserBySession(ctx context.Context, session string) (data UserData, err error)
 	AddNewOrder(ctx context.Context, orderNum string, userNm string) (username string, err error)
+	GetOrdesList(ctx context.Context, userNm string, lim_stt int, count int) (data []OrderData, err error)
+	UpdOrderData(ctx context.Context, orderNum string, orserStt int, accrual float64) error
 	Close()
 }
 
