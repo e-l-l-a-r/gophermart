@@ -37,9 +37,9 @@ func GetOrderStatus(baseUrl string, ch chan model.Order, ch_out chan model.Order
 			continue
 		}
 
-		url := fmt.Sprintf("http://%s/api/orders/%s", baseUrl, order.Number)
+		url := fmt.Sprintf("%s/api/orders/%s", baseUrl, order.Number)
 
-		request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+		request, err := http.NewRequest(http.MethodGet, url, bytes.NewReader(data))
 		if err != nil {
 			log.WarnMsg(err)
 		}

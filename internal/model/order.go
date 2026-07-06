@@ -144,13 +144,13 @@ func (o *Order) SaveToDb(ctx context.Context) error {
 	return nil
 }
 
-func GetOrdersToProcess(ctx context.Context, count int) ([]Order, error) {
+func GetOrdersForUser(ctx context.Context, userNm string) ([]Order, error) {
 	storage, ok := repository.FromContext(ctx)
 	if !ok {
 		return nil, logger.NewTracedError("storage not found in context", nil)
 	}
 
-	data, err := storage.GetOrdesList(ctx, "", count, OrderStatusMap[PROCESSING])
+	data, err := storage.GetOrdesList(ctx, userNm, len(OrderStatusMap), 0)
 
 	if err != nil {
 		return nil, logger.NewTracedError("error getting orders: ", err)
@@ -159,13 +159,47 @@ func GetOrdersToProcess(ctx context.Context, count int) ([]Order, error) {
 	res := make([]Order, len(data))
 
 	for i := 0; i < len(data); i++ {
-		order := Order{
-			data[i].Number,
-			data[i].Status,
-			data[i].Accrual,
-			data[i].Uploaded,
+		stt, err := getStatusAsString(data[i].Status)
+		if err == nil {
+			order := Order{
+				data[i].Number,
+				stt,
+				data[i].Accrual,
+				data[i].Uploaded,
+			}
+			res = append(res, order)
 		}
-		res = append(res, order)
+	}
+
+	return res, nil
+}
+
+func GetOrdersToProcess(ctx context.Context, count int) ([]Order, error) {
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return nil, logger.NewTracedError("storage not found in context", nil)
+	}
+
+	data, err := storage.GetOrdesList(ctx, "", OrderStatusMap[PROCESSING], count)
+
+	if err != nil {
+		return nil, logger.NewTracedError("error getting orders: ", err)
+	}
+
+	res := make([]Order, 0, len(data))
+
+	for i := 0; i < len(data); i++ {
+
+		stt, err := getStatusAsString(data[i].Status)
+		if err == nil {
+			order := Order{
+				data[i].Number,
+				stt,
+				data[i].Accrual,
+				data[i].Uploaded,
+			}
+			res = append(res, order)
+		}
 	}
 
 	return res, nil

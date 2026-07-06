@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -51,5 +52,35 @@ func addOrderReq() http.HandlerFunc {
 		resp.WriteHeader(http.StatusAccepted)
 		resp.Write([]byte("Заказ успешно добавлен"))
 
+	}
+}
+
+func getOrdersReq() http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
+
+		ctx := req.Context()
+		user := ctx.Value("user").(*model.User)
+
+		defer req.Body.Close()
+
+		orders, err := model.GetOrdersForUser(ctx, user.GetLogin())
+
+		if err != nil {
+			http.Error(resp, "Неизвестная ошибка", http.StatusInternalServerError)
+		}
+
+		if len(orders) == 0 {
+			resp.WriteHeader(http.StatusNoContent)
+			resp.Write([]byte("Список заказов пуст"))
+			return
+		}
+
+		resp.Header().Set("Content-Type", "application/json")
+
+		// сериализуем ответ сервера
+		enc := json.NewEncoder(resp)
+		if err := enc.Encode(orders); err != nil {
+			http.Error(resp, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }

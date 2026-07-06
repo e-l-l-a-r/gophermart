@@ -60,7 +60,6 @@ func runHttpServer(conf config.Config, storage repository.Storage) error {
 func runWorker(conf config.Config, storage repository.Storage) (done_ch chan struct{}, err error) {
 
 	done_ch = make(chan struct{})
-	defer close(done_ch)
 
 	worker.DoWork(storage, done_ch, conf.AccrualAddress)
 

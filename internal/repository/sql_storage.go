@@ -84,6 +84,7 @@ func (sqls *SqlStorage) AddUser(ctx context.Context, user itfUser) error {
 	if err != nil {
 		return logger.NewTracedError("Error adding new user: ", err)
 	}
+	logger.Info("Add user " + user.GetLogin())
 	return nil
 }
 
@@ -171,6 +172,8 @@ func (sqls *SqlStorage) AddNewOrder(ctx context.Context, orderNum string, userNm
 		return
 	}
 
+	logger.Info("Add order ", orderNum, " to user ", userNm)
+
 	return
 }
 
@@ -211,7 +214,7 @@ func (sqls *SqlStorage) GetOrdesList(ctx context.Context, userNm string, lim_stt
 		}
 
 		if count > 0 {
-			data = make([]OrderData, count)
+			data = make([]OrderData, 0, count)
 			sql += `
 				LIMIT ` + fmt.Sprint(count)
 		}
@@ -226,10 +229,13 @@ func (sqls *SqlStorage) GetOrdesList(ctx context.Context, userNm string, lim_stt
 	rows := res.(*sql.Rows)
 	defer rows.Close()
 
+	logger.Info("Gef orders with filter: User: ", userNm, " Status: ", lim_stt, " Count: ", count)
+
 	for rows.Next() {
 		var order OrderData
 		rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.Uploaded)
 		data = append(data, order)
+		logger.Info("Order: ", order.Number, " Status: ", order.Status, " Accrual: ", order.Accrual)
 	}
 	return
 }
@@ -259,5 +265,6 @@ func (sqls *SqlStorage) UpdOrderData(ctx context.Context, orderNum string, orser
 	if err != nil {
 		return logger.NewTracedError("Error updating order data: ", err)
 	}
+	logger.Info("Update order: ", orderNum, " Status: ", orserStt, " Accrual: ", accrual)
 	return nil
 }
