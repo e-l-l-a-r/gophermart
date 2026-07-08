@@ -59,13 +59,16 @@ func GetOrderStatus(baseUrl string, ch chan model.Order, ch_out chan model.Order
 			if resp.StatusCode == http.StatusOK {
 				dec := json.NewDecoder(resp.Body)
 				oldStt := order.Status
-				if err := dec.Decode(&order); err != nil {
+				err := dec.Decode(&order)
+				if err == nil {
 					log.Info(fmt.Sprintf("Order processed: %s\nStatus: %s\nAccrual: %f",
 						order.Status, order.Number, order.Accrual))
 					// Обновляем только в случае изменения статуса
 					if oldStt != order.Status {
 						ch_out <- order
 					}
+				} else {
+					log.WarnMsg("Error while processing order: ", err)
 				}
 			} else if resp.StatusCode == http.StatusNoContent {
 				order.Status = model.INVALID

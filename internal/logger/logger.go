@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	console "log"
@@ -112,14 +113,14 @@ func (l *logger) DoRequestWithLog(c *http.Client, req *http.Request) (resp *http
 	resp, err = c.Do(req)
 	if err != nil {
 		l.WarnMsg(err)
-	} else if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		l.InfoMsg("url:", req.URL, "\tstatus code:", resp.StatusCode, "Body", string(bodyBytes))
-		err = fmt.Errorf("status code: %d", resp.StatusCode)
-		//io.Copy(os.Stdout, resp.Body)
-		resp.Body.Close()
 	} else {
-		l.InfoMsg("Sent: ", req.URL, "Data: ", req.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		l.InfoMsg("url:", req.URL, "\tstatus code:", resp.StatusCode, "\n\tBody", string(bodyBytes))
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			err = fmt.Errorf("status code: %d", resp.StatusCode)
+		}
+		resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 	return
 }

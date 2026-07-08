@@ -11,18 +11,20 @@ import (
 
 const (
 	NEW        = "NEW"
+	REGISTERED = "REGISTERED"
 	PROCESSING = "PROCESSING"
 	INVALID    = "INVALID"
 	PROCESSED  = "PROCESSED"
 )
 
-var OrderStatuses = [...]string{NEW, PROCESSING, INVALID, PROCESSED}
+var OrderStatuses = [...]string{NEW, REGISTERED, PROCESSING, INVALID, PROCESSED}
 
 var OrderStatusMap = map[string]int{
 	NEW:        0,
-	PROCESSING: 1,
-	INVALID:    2,
-	PROCESSED:  3,
+	REGISTERED: 1,
+	PROCESSING: 2,
+	INVALID:    3,
+	PROCESSED:  4,
 }
 
 func getStatusAsInt(status string) (int, error) {
