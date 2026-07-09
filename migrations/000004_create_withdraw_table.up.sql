@@ -5,6 +5,6 @@ CREATE TABLE "Withdraw" (
                              ON DELETE CASCADE
                              ON UPDATE CASCADE,
                          "Number" VARCHAR(64) UNIQUE NOT NULL,
-                         "Sum" INTEGER NOT NULL,
+                         "Sum" FLOAT NOT NULL,
                          "ProcessedAt" timestamp NOT NULL
 );

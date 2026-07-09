@@ -8,39 +8,61 @@ import (
 	"github.com/e-l-l-a-r/gophermart/internal/handler"
 	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/repository"
+	"github.com/e-l-l-a-r/gophermart/internal/worker"
 )
 
 func main() {
-	if err := run(); err != nil {
-		logger.Fatal(err)
-	}
-}
-
-func run() error {
 	conf := config.GetConfig()
-	log, err := logger.InitLogger(conf.LogLevel)
+	_, err := logger.InitLogger(conf.LogLevel)
 
 	if err != nil {
-		return err
+		logger.Fatal(err)
 	}
+
 	conf.Print()
 
 	storage, err := repository.InitSqlStorage(conf.DbConnString)
-	if err != nil {
-		log.Error("Can't connect to database " + err.Error())
-		return err
-	}
 
 	err = storage.DoMigrate()
 	if err != nil {
-		log.Error("Can't migrate database " + err.Error())
-		return err
+		logger.Fatal("Can't migrate database " + err.Error())
 	}
 
-	router := handler.GetRouter()
-	err = http.ListenAndServe(conf.Address, compressor.GzipHandle(log.LogHandle(router)))
+	if err != nil {
+		logger.Fatal("Can't connect to database " + err.Error())
+	}
+
+	done_ch, err := runWorker(conf, storage)
+
+	defer close(done_ch)
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if err := runHttpServer(conf, storage); err != nil {
+		logger.Fatal(err)
+	}
+
+}
+
+func runHttpServer(conf config.Config, storage repository.Storage) error {
+	log, _ := logger.GetLogger()
+
+	router := handler.GetRouter(storage)
+	err := http.ListenAndServe(conf.Address, compressor.GzipHandle(log.LogHandle(router)))
 	if err != nil {
 		return err
 	}
+
 	return nil
+}
+
+func runWorker(conf config.Config, storage repository.Storage) (done_ch chan struct{}, err error) {
+
+	done_ch = make(chan struct{})
+
+	worker.DoWork(storage, done_ch, conf.AccrualAddress)
+
+	return
+
 }

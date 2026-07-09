@@ -48,17 +48,32 @@ func (u *User) GetBalance() Balance {
 	return u.balance
 }
 
+func NewUser(login string) *User {
+	return &User{
+		auth: AuthData{
+			Login: login,
+		},
+	}
+}
+
+func (u *User) SetBalance(current float64, withdrawn float64) {
+	u.balance = Balance{
+		Current:   current,
+		Withdrawn: withdrawn,
+	}
+}
+
 func AddUser(ctx context.Context, data AuthData) (*User, error) {
 	user := User{
 		auth: data,
 	}
 
-	storage, err := repository.GetSqlStorage()
-	if err != nil {
-		return nil, logger.NewTracedError("error getting sql storage: ", err)
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return nil, logger.NewTracedError("storage not found in context", nil)
 	}
 
-	err = storage.AddUser(ctx, &user)
+	err := storage.AddUser(ctx, &user)
 
 	if err != nil {
 		return nil, logger.NewTracedError("error adding user: ", err)
@@ -77,9 +92,9 @@ func LoginUser(ctx context.Context, data AuthData) (*User, error) {
 		auth: data,
 	}
 
-	storage, err := repository.GetSqlStorage()
-	if err != nil {
-		return nil, logger.NewTracedError("error getting sql storage: ", err)
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return nil, logger.NewTracedError("storage not found in context", nil)
 	}
 
 	session, err := storage.CreateSession(ctx, &user)
@@ -95,9 +110,9 @@ func LoginUser(ctx context.Context, data AuthData) (*User, error) {
 
 func GetUserBySession(ctx context.Context, session string) (*User, error) {
 
-	storage, err := repository.GetSqlStorage()
-	if err != nil {
-		return nil, logger.NewTracedError("error getting sql storage: ", err)
+	storage, ok := repository.FromContext(ctx)
+	if !ok {
+		return nil, logger.NewTracedError("storage not found in context", nil)
 	}
 
 	userData, err := storage.GetUserBySession(ctx, session)
