@@ -23,6 +23,12 @@ type OrderData struct {
 	Uploaded time.Time
 }
 
+type WithdrawData struct {
+	Number    string
+	Sum       int
+	Processed time.Time
+}
+
 type Storage interface {
 	AddUser(ctx context.Context, user itfUser) error
 	CreateSession(ctx context.Context, user itfUser) (session string, err error)
@@ -30,6 +36,8 @@ type Storage interface {
 	AddNewOrder(ctx context.Context, orderNum string, userNm string) (username string, err error)
 	GetOrdesList(ctx context.Context, userNm string, lim_stt int, count int) (data []OrderData, err error)
 	UpdOrderData(ctx context.Context, orderNum string, orserStt int, accrual float64) error
+	AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum int) (err error)
+	GetWithdrawalsList(ctx context.Context, userNm string) (data []WithdrawData, err error)
 	Close()
 }
 

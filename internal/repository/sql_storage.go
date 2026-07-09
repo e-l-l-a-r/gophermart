@@ -227,7 +227,7 @@ func (sqls *SqlStorage) GetOrdesList(ctx context.Context, userNm string, lim_stt
 	})
 
 	if err != nil {
-		err = logger.NewTracedError("error adding new order: ", err)
+		err = logger.NewTracedError("error receiving order list: ", err)
 		return
 	}
 	rows := res.(*sql.Rows)
@@ -271,4 +271,65 @@ func (sqls *SqlStorage) UpdOrderData(ctx context.Context, orderNum string, orser
 	}
 	logger.Info("Update order: ", orderNum, " Status: ", orserStt, " Accrual: ", accrual)
 	return nil
+}
+
+func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum int) (err error) {
+	_, err = logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
+		return sqls.db.ExecContext(ctx, `
+			WITH ins_data as (
+				INSERT INTO "Withdraw" ("UserId", "Number", "Sum", "ProcessedAt")
+				SELECT u."ID", $1, $2::int, NOW()
+				FROM "User" u
+				WHERE u."Name" = $3
+				RETURNING *
+		    )
+			UPDATE "Balance" b
+			SET "Current" = "Current" - $2::int
+			, "Withdrawn" = "Withdrawn" + $2::int
+			FROM ins_data u
+			WHERE b."UserId" = u."UserId"
+            `,
+			orderNum, sum, userNm,
+		)
+	})
+	if err != nil {
+		err = logger.NewTracedError("error adding new withdraw: ", err)
+		return
+	}
+
+	logger.Info("Add withdraw ", sum, " to user ", userNm)
+
+	return
+}
+
+func (sqls *SqlStorage) GetWithdrawalsList(ctx context.Context, userNm string) (data []WithdrawData, err error) {
+	res, err := logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
+		sql := `
+			SELECT 
+			    w."Number"
+			    , w."Sum"
+			    , w."ProcessedAt"
+			FROM "Withdraw" w
+			JOIN "User" u ON w."UserId" = u."ID"
+			WHERE u."Name" = $1::text
+			`
+		return sqls.db.QueryContext(ctx, sql, userNm)
+	})
+
+	if err != nil {
+		err = logger.NewTracedError("error receiving withdraw list: ", err)
+		return
+	}
+	rows := res.(*sql.Rows)
+	defer rows.Close()
+
+	logger.Info("Gef withdrawals for user: ", userNm)
+
+	for rows.Next() {
+		var withdraw WithdrawData
+		rows.Scan(&withdraw.Number, &withdraw.Sum, &withdraw.Processed)
+		data = append(data, withdraw)
+		logger.Info("Withdraw: ", withdraw.Number, " Sum: ", withdraw.Sum)
+	}
+	return
 }
