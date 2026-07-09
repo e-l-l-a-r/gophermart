@@ -13,7 +13,7 @@ type itfUser interface {
 type UserData struct {
 	Login     string
 	Current   float64
-	Withdrawn int
+	Withdrawn float64
 }
 
 type OrderData struct {
@@ -25,7 +25,7 @@ type OrderData struct {
 
 type WithdrawData struct {
 	Number    string
-	Sum       int
+	Sum       float64
 	Processed time.Time
 }
 
@@ -36,7 +36,7 @@ type Storage interface {
 	AddNewOrder(ctx context.Context, orderNum string, userNm string) (username string, err error)
 	GetOrdesList(ctx context.Context, userNm string, lim_stt int, count int) (data []OrderData, err error)
 	UpdOrderData(ctx context.Context, orderNum string, orserStt int, accrual float64) error
-	AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum int) (err error)
+	AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum float64) (err error)
 	GetWithdrawalsList(ctx context.Context, userNm string) (data []WithdrawData, err error)
 	Close()
 }

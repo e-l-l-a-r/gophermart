@@ -56,7 +56,7 @@ func NewUser(login string) *User {
 	}
 }
 
-func (u *User) SetBalance(current float64, withdrawn int) {
+func (u *User) SetBalance(current float64, withdrawn float64) {
 	u.balance = Balance{
 		Current:   current,
 		Withdrawn: withdrawn,
