@@ -103,6 +103,10 @@ func (sqls *SqlStorage) CreateSession(ctx context.Context, user itfUser) (sessio
 		).Scan(&session)
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = &ErrNoData{*logger.NewTracedError("No user found: ", err)}
+			return
+		}
 		err = logger.NewTracedError("error adding new session: ", err)
 		return "", err
 	}
