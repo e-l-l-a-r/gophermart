@@ -5,5 +5,5 @@ CREATE TABLE "Balance" (
                                 ON DELETE CASCADE
                                 ON UPDATE CASCADE,
                             "Current" FLOAT NOT NULL,
-                            "Withdrawn" INTEGER NOT NULL
+                            "Withdrawn" FLOAT NOT NULL
 );

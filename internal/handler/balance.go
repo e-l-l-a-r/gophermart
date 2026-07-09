@@ -50,7 +50,7 @@ func balanceWithdrawReq() http.HandlerFunc {
 		}
 
 		// Проверяем достаточность средств на балансе
-		if user.GetBalance().Current < float64(withdraw.Sum) {
+		if user.GetBalance().Current < withdraw.Sum {
 			http.Error(resp, "insufficient funds", http.StatusPaymentRequired)
 			return
 		}
@@ -74,7 +74,7 @@ func getwithdrawalsReq() http.HandlerFunc {
 
 		defer req.Body.Close()
 
-		orders, err := model.GetOrdersForUser(ctx, user.GetLogin())
+		orders, err := model.GetWithdrawalsForUser(ctx, user.GetLogin())
 
 		if err != nil {
 			http.Error(resp, "Неизвестная ошибка", http.StatusInternalServerError)

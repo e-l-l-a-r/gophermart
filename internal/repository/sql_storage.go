@@ -273,19 +273,19 @@ func (sqls *SqlStorage) UpdOrderData(ctx context.Context, orderNum string, orser
 	return nil
 }
 
-func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum int) (err error) {
+func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum float64) (err error) {
 	_, err = logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
 		return sqls.db.ExecContext(ctx, `
 			WITH ins_data as (
 				INSERT INTO "Withdraw" ("UserId", "Number", "Sum", "ProcessedAt")
-				SELECT u."ID", $1, $2::int, NOW()
+				SELECT u."ID", $1, $2::float8, NOW()
 				FROM "User" u
 				WHERE u."Name" = $3
 				RETURNING *
 		    )
 			UPDATE "Balance" b
-			SET "Current" = "Current" - $2::int
-			, "Withdrawn" = "Withdrawn" + $2::int
+			SET "Current" = "Current" - $2::float8
+			, "Withdrawn" = "Withdrawn" + $2::float8
 			FROM ins_data u
 			WHERE b."UserId" = u."UserId"
             `,

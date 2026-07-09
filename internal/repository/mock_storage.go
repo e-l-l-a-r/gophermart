@@ -40,7 +40,7 @@ func (m *MockStorage) UpdOrderData(ctx context.Context, orderNum string, orserSt
 	return args.Error(0)
 }
 
-func (m *MockStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum int) (err error) {
+func (m *MockStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum float64) (err error) {
 	args := m.Called(ctx, orderNum, userNm, sum)
 	return args.Error(0)
 }

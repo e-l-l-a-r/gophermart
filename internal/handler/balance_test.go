@@ -38,6 +38,6 @@ func TestBalanceReq(t *testing.T) {
 		err := json.NewDecoder(resp.Body).Decode(&balance)
 		assert.NoError(t, err)
 		assert.Equal(t, 123.45, balance.Current)
-		assert.Equal(t, 10, balance.Withdrawn)
+		assert.Equal(t, 10.0, balance.Withdrawn)
 	})
 }
