@@ -158,7 +158,7 @@ func GetOrdersForUser(ctx context.Context, userNm string) ([]Order, error) {
 		return nil, logger.NewTracedError("error getting orders: ", err)
 	}
 
-	res := make([]Order, len(data))
+	res := make([]Order, 0, len(data))
 
 	for i := 0; i < len(data); i++ {
 		stt, err := getStatusAsString(data[i].Status)
