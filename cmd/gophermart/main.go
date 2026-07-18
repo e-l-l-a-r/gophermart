@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/e-l-l-a-r/gophermart/internal/compressor"
 	"github.com/e-l-l-a-r/gophermart/internal/config"
@@ -23,18 +24,18 @@ func main() {
 
 	storage, err := repository.InitSqlStorage(conf.DbConnString)
 
+	if err != nil {
+		logger.Fatal("Can't connect to database " + err.Error())
+	}
+
 	err = storage.DoMigrate()
 	if err != nil {
 		logger.Fatal("Can't migrate database " + err.Error())
 	}
 
-	if err != nil {
-		logger.Fatal("Can't connect to database " + err.Error())
-	}
+	doneCh, wg, err := runWorker(conf, storage)
 
-	done_ch, err := runWorker(conf, storage)
-
-	defer close(done_ch)
+	defer close(doneCh)
 
 	if err != nil {
 		logger.Fatal(err)
@@ -42,6 +43,7 @@ func main() {
 	if err := runHttpServer(conf, storage); err != nil {
 		logger.Fatal(err)
 	}
+	wg.Wait()
 
 }
 
@@ -57,11 +59,11 @@ func runHttpServer(conf config.Config, storage repository.Storage) error {
 	return nil
 }
 
-func runWorker(conf config.Config, storage repository.Storage) (done_ch chan struct{}, err error) {
+func runWorker(conf config.Config, storage repository.Storage) (doneCh chan struct{}, wg *sync.WaitGroup, err error) {
 
-	done_ch = make(chan struct{})
+	doneCh = make(chan struct{})
 
-	worker.DoWork(storage, done_ch, conf.AccrualAddress)
+	wg = worker.DoWork(storage, doneCh, conf.AccrualAddress)
 
 	return
 

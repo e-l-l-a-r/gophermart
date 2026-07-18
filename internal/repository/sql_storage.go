@@ -38,13 +38,6 @@ func InitSqlStorage(connectionStr string) (*SqlStorage, error) {
 	return storage, nil
 }
 
-func GetSqlStorage() (*SqlStorage, error) {
-	if storage == nil {
-		return nil, fmt.Errorf("no storage inited")
-	}
-	return storage, nil
-}
-
 func (sqls *SqlStorage) Close() {
 	sqls.db.Close()
 }
@@ -205,15 +198,15 @@ func (sqls *SqlStorage) GetOrdesList(ctx context.Context, userNm string, lim_stt
 				AND o."Status" <= $2::int
 		`
 
-		// Если запрос по пользователю, то возвращаем заказыначиная с самого свежего,
+		// Если запрос по пользователю, то возвращаем заказы начиная с самого свежего,
 		// для проверки статусов берем в первую очередь самые старые заказы
 		if userNm == "" {
 			sql += `
-				ORDER BY o."UploadedAt" DESC
+				ORDER BY o."UploadedAt" ASC
 			`
 		} else {
 			sql += `
-				ORDER BY o."UploadedAt" ASC
+				ORDER BY o."UploadedAt" DESC
 			`
 		}
 
@@ -237,9 +230,13 @@ func (sqls *SqlStorage) GetOrdesList(ctx context.Context, userNm string, lim_stt
 
 	for rows.Next() {
 		var order OrderData
-		rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.Uploaded)
-		data = append(data, order)
-		logger.Info("Order: ", order.Number, " Status: ", order.Status, " Accrual: ", order.Accrual)
+		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.Uploaded)
+		if err == nil {
+			data = append(data, order)
+			logger.Info("Order: ", order.Number, " Status: ", order.Status, " Accrual: ", order.Accrual)
+		} else {
+			logger.Warn("Error receiving order data: ", err)
+		}
 	}
 	return
 }
@@ -274,7 +271,7 @@ func (sqls *SqlStorage) UpdOrderData(ctx context.Context, orderNum string, orser
 }
 
 func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum float64) (err error) {
-	_, err = logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
+	res, err := logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
 		return sqls.db.ExecContext(ctx, `
 			WITH ins_data as (
 				INSERT INTO "Withdraw" ("UserId", "Number", "Sum", "ProcessedAt")
@@ -288,6 +285,7 @@ func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, use
 			, "Withdrawn" = "Withdrawn" + $2::float8
 			FROM ins_data u
 			WHERE b."UserId" = u."UserId"
+			AND b."Current" >= $2::float8
             `,
 			orderNum, sum, userNm,
 		)
@@ -295,6 +293,17 @@ func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, use
 	if err != nil {
 		err = logger.NewTracedError("error adding new withdraw: ", err)
 		return
+	}
+
+	result := res.(sql.Result)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return logger.NewTracedError("error getting rows affected: ", err)
+	}
+
+	if rowsAffected == 0 {
+		// Запрос выполнился без ошибок, но данные не обновились, значит недостаточно средств на балансе
+		return &ErrNoData{*logger.NewTracedError("insufficient funds", nil)}
 	}
 
 	logger.Info("Add withdraw ", sum, " to user ", userNm)
@@ -312,6 +321,7 @@ func (sqls *SqlStorage) GetWithdrawalsList(ctx context.Context, userNm string) (
 			FROM "Withdraw" w
 			JOIN "User" u ON w."UserId" = u."ID"
 			WHERE u."Name" = $1::text
+			ORDER BY w."ProcessedAt" DESC
 			`
 		return sqls.db.QueryContext(ctx, sql, userNm)
 	})
@@ -327,9 +337,13 @@ func (sqls *SqlStorage) GetWithdrawalsList(ctx context.Context, userNm string) (
 
 	for rows.Next() {
 		var withdraw WithdrawData
-		rows.Scan(&withdraw.Number, &withdraw.Sum, &withdraw.Processed)
-		data = append(data, withdraw)
-		logger.Info("Withdraw: ", withdraw.Number, " Sum: ", withdraw.Sum)
+		err := rows.Scan(&withdraw.Number, &withdraw.Sum, &withdraw.Processed)
+		if err == nil {
+			data = append(data, withdraw)
+			logger.Info("Withdraw: ", withdraw.Number, " Sum: ", withdraw.Sum)
+		} else {
+			logger.Warn("error receiving withdraw: ", err)
+		}
 	}
 	return
 }

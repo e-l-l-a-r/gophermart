@@ -17,7 +17,7 @@ import (
 func TestAuthHandlers(t *testing.T) {
 	logger.InitLogger("info")
 
-	mockStorage := new(repository.MockStorage)
+	mockStorage := repository.NewMockStorage(t)
 
 	t.Run("Register success", func(t *testing.T) {
 		authData := model.AuthData{

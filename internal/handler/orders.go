@@ -67,6 +67,7 @@ func getOrdersReq() http.HandlerFunc {
 
 		if err != nil {
 			http.Error(resp, "Неизвестная ошибка", http.StatusInternalServerError)
+			return
 		}
 
 		if len(orders) == 0 {

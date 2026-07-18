@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/model"
+	"github.com/e-l-l-a-r/gophermart/internal/repository"
 )
 
 func balanceReq() http.HandlerFunc {
@@ -38,7 +40,7 @@ func balanceWithdrawReq() http.HandlerFunc {
 		if err := dec.Decode(&withdraw); err != nil {
 			err = logger.NewTracedError("Incorrect data", err)
 			logger.Info("cannot decode request JSON body", err)
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -49,14 +51,12 @@ func balanceWithdrawReq() http.HandlerFunc {
 			return
 		}
 
-		// Проверяем достаточность средств на балансе
-		if user.GetBalance().Current < withdraw.Sum {
-			http.Error(resp, "insufficient funds", http.StatusPaymentRequired)
-			return
-		}
-
 		err := withdraw.Add(ctx, user.GetLogin())
 		if err != nil {
+			if _, ok := errors.AsType[*repository.ErrNoData](err); ok {
+				http.Error(resp, "insufficient funds", http.StatusPaymentRequired)
+				return
+			}
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -78,6 +78,7 @@ func getwithdrawalsReq() http.HandlerFunc {
 
 		if err != nil {
 			http.Error(resp, "Неизвестная ошибка", http.StatusInternalServerError)
+			return
 		}
 
 		if len(orders) == 0 {

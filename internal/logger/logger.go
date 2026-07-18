@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -109,7 +110,7 @@ func (l *logger) LogHandle(next http.Handler) http.Handler {
 	})
 }
 
-func (l *logger) DoRequestWithLog(c *http.Client, req *http.Request) (resp *http.Response, err error) {
+func (l *logger) DoRequestWithLog(c *retryablehttp.Client, req *retryablehttp.Request) (resp *http.Response, err error) {
 	resp, err = c.Do(req)
 	if err != nil {
 		l.WarnMsg(err)

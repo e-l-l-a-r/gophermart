@@ -44,14 +44,12 @@ func GetWithdrawalsForUser(ctx context.Context, userNm string) ([]Withdraw, erro
 	res := make([]Withdraw, 0, len(data))
 
 	for i := 0; i < len(data); i++ {
-		if err == nil {
-			withdraw := Withdraw{
-				data[i].Number,
-				data[i].Sum,
-				data[i].Processed,
-			}
-			res = append(res, withdraw)
+		withdraw := Withdraw{
+			data[i].Number,
+			data[i].Sum,
+			data[i].Processed,
 		}
+		res = append(res, withdraw)
 	}
 
 	return res, nil

@@ -5,16 +5,14 @@ import (
 
 	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/model"
-	"github.com/e-l-l-a-r/gophermart/internal/repository"
 )
 
-func UpdOrderData(storage repository.Storage, ch chan model.Order) {
-	ctx := repository.ContextWithStorage(context.Background(), storage)
-
+func UpdOrderData(ctx context.Context, ch chan model.Order) {
 	log, err := logger.GetLogger()
 	if err != nil {
 		logger.Warn(err)
 	}
+	defer ctx.Done()
 
 	log.Info("Starting orders update thread")
 	for {
@@ -23,8 +21,9 @@ func UpdOrderData(storage repository.Storage, ch chan model.Order) {
 			return
 		}
 
-		order.SaveToDb(ctx)
+		if err := order.SaveToDb(ctx); err != nil {
+			log.WarnMsg("error saving order to db: ", err)
+		}
 	}
 
-	ctx.Done()
 }
