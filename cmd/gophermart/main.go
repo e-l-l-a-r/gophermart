@@ -35,16 +35,14 @@ func main() {
 
 	doneCh, wg, err := runWorker(conf, storage)
 
-	defer close(doneCh)
-
 	if err != nil {
 		logger.Fatal(err)
 	}
 	if err := runHttpServer(conf, storage); err != nil {
-		logger.Fatal(err)
+		logger.Err(err)
 	}
+	close(doneCh)
 	wg.Wait()
-
 }
 
 func runHttpServer(conf config.Config, storage repository.Storage) error {

@@ -20,7 +20,8 @@ func balanceReq() http.HandlerFunc {
 		// сериализуем ответ сервера
 		enc := json.NewEncoder(resp)
 		if err := enc.Encode(user.GetBalance()); err != nil {
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 			return
 		}
 
@@ -39,7 +40,7 @@ func balanceWithdrawReq() http.HandlerFunc {
 
 		if err := dec.Decode(&withdraw); err != nil {
 			err = logger.NewTracedError("Incorrect data", err)
-			logger.Info("cannot decode request JSON body", err)
+			logger.Debug("cannot decode request JSON body", err)
 			http.Error(resp, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -57,7 +58,8 @@ func balanceWithdrawReq() http.HandlerFunc {
 				http.Error(resp, "insufficient funds", http.StatusPaymentRequired)
 				return
 			}
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 			return
 		}
 
@@ -83,7 +85,6 @@ func getwithdrawalsReq() http.HandlerFunc {
 
 		if len(orders) == 0 {
 			resp.WriteHeader(http.StatusNoContent)
-			resp.Write([]byte("Список списаний пуст"))
 			return
 		}
 
@@ -92,7 +93,8 @@ func getwithdrawalsReq() http.HandlerFunc {
 		// сериализуем ответ сервера
 		enc := json.NewEncoder(resp)
 		if err := enc.Encode(orders); err != nil {
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 		}
 	}
 }

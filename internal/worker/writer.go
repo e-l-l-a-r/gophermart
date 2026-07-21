@@ -12,7 +12,6 @@ func UpdOrderData(ctx context.Context, ch chan model.Order) {
 	if err != nil {
 		logger.Warn(err)
 	}
-	defer ctx.Done()
 
 	log.Info("Starting orders update thread")
 	for {

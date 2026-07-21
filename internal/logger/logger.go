@@ -150,6 +150,14 @@ func Fatal(args ...interface{}) {
 	}
 }
 
+func Err(args ...interface{}) {
+	if singleLogger != nil {
+		singleLogger.Sugar().Errorln(args)
+	} else {
+		console.Println(args...)
+	}
+}
+
 func Warn(args ...interface{}) {
 	if singleLogger != nil {
 		singleLogger.Sugar().Warnln(args)
@@ -161,6 +169,14 @@ func Warn(args ...interface{}) {
 func Info(args ...interface{}) {
 	if singleLogger != nil {
 		singleLogger.Sugar().Infoln(args)
+	} else {
+		console.Println(args...)
+	}
+}
+
+func Debug(args ...interface{}) {
+	if singleLogger != nil {
+		singleLogger.Sugar().Debugln(args)
 	} else {
 		console.Println(args...)
 	}

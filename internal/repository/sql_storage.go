@@ -273,19 +273,25 @@ func (sqls *SqlStorage) UpdOrderData(ctx context.Context, orderNum string, orser
 func (sqls *SqlStorage) AddNewWithdraw(ctx context.Context, orderNum string, userNm string, sum float64) (err error) {
 	res, err := logger.ExecuteWithRetry(func(args ...interface{}) (interface{}, error) {
 		return sqls.db.ExecContext(ctx, `
-			WITH ins_data as (
+			WITH check_data as (
+			    SELECT b."UserId"
+			    FROM "Balance" b
+			    LEFT JOIN "User" u ON u."ID" = b."UserId"
+				WHERE u."Name" = $3::text
+			    AND b."Current" >= $2::float8
+				FOR UPDATE 
+			),
+			ins_data as (
 				INSERT INTO "Withdraw" ("UserId", "Number", "Sum", "ProcessedAt")
-				SELECT u."ID", $1, $2::float8, NOW()
-				FROM "User" u
-				WHERE u."Name" = $3
+				SELECT c."UserId", $1::text, $2::float8, NOW()
+				FROM check_data c 
 				RETURNING *
 		    )
 			UPDATE "Balance" b
 			SET "Current" = "Current" - $2::float8
 			, "Withdrawn" = "Withdrawn" + $2::float8
-			FROM ins_data u
-			WHERE b."UserId" = u."UserId"
-			AND b."Current" >= $2::float8
+			FROM ins_data i
+			WHERE b."UserId" = i."UserId"
             `,
 			orderNum, sum, userNm,
 		)

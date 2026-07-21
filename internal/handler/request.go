@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/model"
 	"github.com/e-l-l-a-r/gophermart/internal/repository"
 )
@@ -53,7 +54,8 @@ func CheckAuth(next http.HandlerFunc) http.HandlerFunc {
 				http.Error(resp, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 			return
 		}
 

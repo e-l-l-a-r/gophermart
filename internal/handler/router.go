@@ -5,17 +5,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var (
-	routesInstalled bool
-	rtr             *chi.Mux
-)
-
 func GetRouter(storage repository.Storage) *chi.Mux {
-	if routesInstalled {
-		return rtr // Return existing router
-	}
-	routesInstalled = true
-	rtr = chi.NewRouter()
+	rtr := chi.NewRouter()
 
 	rtr.Use(WithStorage(storage))
 

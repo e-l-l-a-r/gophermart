@@ -17,7 +17,7 @@ func getAuthData(req *http.Request) (auth model.AuthData, err error) {
 
 	if err = dec.Decode(&auth); err != nil {
 		err = logger.NewTracedError("Incorrect data", err)
-		logger.Info("cannot decode request JSON body", err)
+		logger.Debug("cannot decode request JSON body", err)
 		return
 	}
 
@@ -67,7 +67,8 @@ func loginReq() http.HandlerFunc {
 				http.Error(resp, "Неверный логин или пароль", http.StatusUnauthorized)
 				return
 			}
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 			return
 		}
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/e-l-l-a-r/gophermart/internal/logger"
 	"github.com/e-l-l-a-r/gophermart/internal/model"
 )
 
@@ -72,7 +73,6 @@ func getOrdersReq() http.HandlerFunc {
 
 		if len(orders) == 0 {
 			resp.WriteHeader(http.StatusNoContent)
-			resp.Write([]byte("Список заказов пуст"))
 			return
 		}
 
@@ -81,7 +81,8 @@ func getOrdersReq() http.HandlerFunc {
 		// сериализуем ответ сервера
 		enc := json.NewEncoder(resp)
 		if err := enc.Encode(orders); err != nil {
-			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			logger.Err(err.Error())
 		}
 	}
 }

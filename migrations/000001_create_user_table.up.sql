@@ -1,6 +1,6 @@
 -- Создание таблицы пользователей
 CREATE TABLE "User" (
-                        "ID" SERIAL PRIMARY KEY,
+                        "ID" INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                         "Name" VARCHAR(255) UNIQUE NOT NULL,
                         "AuthKey" VARCHAR(255) NOT NULL
 );
